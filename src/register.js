@@ -21,21 +21,40 @@
 */
 
 (function($, MITHGrid) {
+	
 	// Set up presentation layers
 	MITHGrid.Presentation.namespace('TextArea');
 	MITHGrid.Presentation.TextArea.initPresentation = function(container, options) {
-		var that = MITHGrid.Presentation.initPresentation("MITHGrid.Presentation.TextArea", container, options);
+		var that = MITHGrid.Presentation.initPresentation("MITHGrid.Presentation.TextArea", container, options),
+		_getChildNumber = function(obj){
+			if (obj.parentNode) {
+				var children = obj.parentNode.childNodes;
+				var num;
+				for (var i = 0; i < children.length; i++) {
+					if (children[i].isSameNode(obj)) {
+
+						return i;
+					}
+				}
+			}
+
+			return null;
+		};
+		
 		// Rangy object to be re-used
-		console.log('rangy: '+rangy);
+		
 		rangy.init();
 		// set up mouse listeners
 		$(container).mouseup(function(e) {
 			// get the selection the user made,
 			// trigger event to pass the text
 			
-			var textSelect, sel = rangy.getSelection();
-			textSelect = sel.toString();
-			$(container).trigger("TargetTextSelected", [textSelect]);
+			var sel = rangy.getSelection();
+			// add start and end indexes
+			var startIndex = _getChildNumber(sel.anchorNode),
+			endIndex = _getChildNumber(sel.focusNode);
+			
+			$("body:first").trigger("TargetTextSelected", [sel, startIndex, endIndex]);
 		});
 		
 		return that;
@@ -147,11 +166,14 @@
 							// analyses the URI for the target and displays the item
 							// that the URI is pointing to
 							
-							var that = {}, item = model.getItem(itemId), el = '<div><strong>Target Found:</strong><br/>';
+							var that = {}, item = model.getItem(itemId), 
+							el = '<div><strong>Target Found:</strong><br/>',
+							textItem = model.prepare([".type='text'"]);
 							
 							el += '<p>'+item.id[0]+'</p>'+
 							'<p>'+item.type[0]+'</p>'+
-							'<p>'+item.content+'</p>';
+							'<p>'+item.content[0]+'</p>'+
+							'<p>'+JSON.stringify(item.constraint[0])+'</p>';
 							$(container).append(el);
 							
 							that.update = function(item) {
@@ -186,23 +208,22 @@
 								body_uri: item.hasBody[0],
 								targets: [{
 									uri: target.id[0],
-									constraint: target.constraint[0],
-									context: ''
+									constraint: target.constraint[0]
 								}]
 							};
-							console.log('anno being sent to: '+post_anno_uri);
+							console.log('anno: ');
+							console.log(JSON.stringify(anno));
 							// push to the annotation server
 							$.ajax({
-								url: post_anno_uri,
+								url: phpCDBypass,
 								type: 'POST',
-								dataType: 'json',
-								data: JSON.stringify(anno),
+								dataType: 'text',
+								data: {urlsend: post_anno_uri, datasend: JSON.stringify(anno)},
 								success: function(d) {
-									console.log('anno object is returned: '+JSON.stringify(d));
+									console.log('anno object is returned: '+d);
 								},
 								error: function(xhr, status, e) {
 									console.log('error '+e+'  '+JSON.stringify(xhr));
-									
 								}
 							});
 							
@@ -216,6 +237,9 @@
 		author_uri = 'Grant',
 		post_body_uri = 'http://interedition.performantsoftware.com/annotation_bodies',
 		post_anno_uri = 'http://interedition.performantsoftware.com/annotations.json',
+		constrain_anno_uri = 'http://172.17.6.140:8182/oac-constraint/create',
+		constrain_anno_match_uri = 'http://87.106.12.254:8182/oac-constraint/match',
+		phpCDBypass = 'src/callServer.php',
 		targetId = '',
 		bodyId = 'http://interedition.performantsoftware.com/annotation_bodies/86',
 		validate = function(uri) {
@@ -356,7 +380,7 @@
 		checkHasBody = function(uri) {
 			// checking against local data store 
 		},
-		getTargetSelection = function(e, text) {
+		getTargetSelection = function(e, text, constraint) {
 			// callback for the TargetTextSelected event
 			// Retrieves the text the user selects and inputs
 			// into the data store
@@ -368,11 +392,57 @@
 				type: 'target',
 				content: text,
 				mime_type: "text/html",
-				constraint: ''
+				constraint: constraint
 			};
 			that.dataStore.MM.loadItems([targetObj]);
 			// register this target ID to body area
 			$("#targetID").text(targetObj.id);
+		},
+		// Registers an OAC-annotation constraint from 
+		// a text selection
+		registerConstraint = function(e, sel, start, end) {
+			var cObj = {}, linepos = 'line='+start+','+end,
+			ranges = sel.getAllRanges(), txt = sel.toString(),
+			textItem = that.dataStore.MM.prepare(['.type="text"']), 
+			textURI = 'http://quartos.org/lib/XMLDoc/viewXML.php?path=ham-1604-22276x-fol-c01.xml';
+			// convert item to constrain object
+			
+			cObj = {
+				uri: textURI,
+				constraint: {
+					position: linepos
+				}
+			};
+			console.log('register Constraint: '+JSON.stringify(cObj)+' '+phpCDBypass);
+			// call constraint service
+			$.ajax({
+				url: phpCDBypass,
+				type: 'POST',
+				dataType: 'text',
+				data: {urlsend: constrain_anno_uri, datasend: JSON.stringify(cObj)},
+				success: function(constraint) {
+					
+					console.log('success reached '+constraint);
+					
+					
+					$("body:first").trigger("TargetTextParsed", [txt, JSON.parse(constraint)]);
+				},
+				complete: function(xhr, status) {
+					console.log(xhr);
+				}
+			});
+
+			// var http_request = new XMLHttpRequest();
+			// 			http_request.open( "POST", constrain_anno_uri, true );
+			// 			http_request.setRequestHeader("Content-type","application/json");
+			// 			http_request.onreadystatechange = function () {
+			// 			    if ( http_request.readyState == 4 && http_request.status == 200 ) {
+			// 			            console.log('200 ok: '+JSON.stringify(http_request.responseText));
+			// 			        }
+			// 			};
+			// 			http_request.send(JSON.stringify(cObj));
+			
+			
 		};
 		
 		
@@ -385,7 +455,8 @@
 			
 			// Global bind
 			// Load the target object into Data Store
-			$("body").bind("TargetTextSelected", getTargetSelection);
+			$("body").bind("TargetTextSelected", registerConstraint);
+			$("body").bind("TargetTextParsed", getTargetSelection);
 			
 			// Load the Body object in order to get back a unique
 			// URI value
@@ -429,7 +500,7 @@
 			
 			// Load in sample text for Target area
 			that.dataStore.MM.loadItems([{
-				id: 'shakespeare',
+				id: 'http://quartos.org/lib/XMLDoc/viewXML.php?path=ham-1604-22276x-fol-c01.xml',
 				type: 'text',
 				content: 'King.'+
 				'And now princely Sonne Hamlet ,  				'+

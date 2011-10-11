@@ -7,11 +7,11 @@ Development Notes
 -------
 
 FRONT END CLIENT GROUP
-	- Form with input fields for Target and Body URI
-	- textarea for user input of new Body Annotation
-	- Submit button
-	- Display for validation success for target and body URI
-	- Radio buttons to pick between entering free text (textarea) for Body or a URI (input field)
+	- Display Text from corpora
+	- Allow user to select the text (Creates a target object)
+	- Allow user to enter text to Body content as free text
+	- Push annotation to raxdl server
+	- TODO: register constraints on constraint server 
 
 	Use cases for front-end client:
 	* User has Target URI of <mime-type> (XML, text, website, image) that they provide text in a textarea to describe/annotate
