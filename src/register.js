@@ -208,7 +208,7 @@
 				},
 				AnnoDisp: {
 					type: MITHGrid.Presentation.AnnoView,
-					container: "#annotationTable",
+					container: "#bodyLoadTable",
 					dataView: 'AnnotationDisp',
 					lenses: {
 						annotation: function(container, view, model, itemId) {
@@ -222,7 +222,7 @@
 									dataType: 'text',
 									data: {urlsend: post_anno_uri, datasend: JSON.stringify(anno)},
 									success: function(d) {
-										
+										$(container).append('<p>'+d+'</p>');
 									},
 									error: function(xhr, status, e) {
 										console.log('error '+e+'  '+JSON.stringify(xhr));
@@ -238,13 +238,15 @@
 							$("#"+$(container).attr('id')+" > ul").append(el);
 							// get target and body items
 							target = model.getItem(item.hasTargets[0]);
-
+							
+							console.log('target: '+JSON.stringify(target));
+							
 							// prep for server/convert data
 							anno = {
 								author_uri: author_uri,
 								body_uri: item.hasBody[0],
 								targets: [{
-									uri: target.id[0],
+									uri: target.uri[0],
 									constraint: target.constraint[0]
 								}]
 							};
@@ -432,14 +434,15 @@
 			// into the data store
 			var targetObj = {}, targets, query = that.dataStore.MM.prepare([".type='target'"]);
 			targets = query.length;
+			targetId = 't'+(Math.ceil(Math.random()*100));
 			console.log(targetURI);
 			targetObj = {
-				id: 't'+(Math.ceil(Math.random()*100)),
+				id: targetId,
 				uri: targetURI,
 				type: 'target',
 				content: text,
 				mime_type: "text/html",
-				constraint: constraint
+				constraint: constraint.constraint
 			};
 			that.dataStore.MM.loadItems([targetObj]);
 		},
