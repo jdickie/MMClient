@@ -124,13 +124,18 @@
 					lenses: {
 						text: function(container, view, model, itemId) {
 							var that = {}, item = model.getItem(itemId);
-							console.log(JSON.stringify(container));
+							
 							// render item as UTF-8 in textarea
 							container.empty().append('<p>'+item.content+'</p>');
 							// create a new Rangy object for 
 							// text selection
 							view.rangy = rangy.createRange();
 							
+							that.update = function(item) {
+								view.rangy = rangy.createRange();
+							};
+							
+							return that;
 						}
 					}
 				},
@@ -153,6 +158,18 @@
 							
 							$("#bodyLoadTable").append(el);
 							
+							that.update = function(item) {
+								el = '<li>'+
+								'<p>'+item.id[0]+'</p>'+
+								'<br/>'+
+								'<p>'+item.mime_type[0]+'</p>'+
+								'<br/>'+
+								'<p>'+item.content[0]+'</p>'+
+								'</li>';
+
+								$("#bodyLoadTable").append(el);
+							};
+							
 							return that;
 						}
 					}
@@ -173,11 +190,15 @@
 							el += '<p>'+item.id[0]+'</p>'+
 							'<p>'+item.type[0]+'</p>'+
 							'<p>'+item.content[0]+'</p>'+
-							'<p>'+JSON.stringify(item.constraint[0])+'</p>';
+							'<p><pre>'+JSON.stringify(item.constraint[0]).replace(/\\+/g)+'</pre></p>';
 							$(container).append(el);
 							
 							that.update = function(item) {
-								
+								el += '<p>'+item.id[0]+'</p>'+
+								'<p>'+item.type[0]+'</p>'+
+								'<p>'+item.content[0]+'</p>'+
+								'<p><pre>'+JSON.stringify(item.constraint[0]).replace(/\\+/g)+'</pre></p>';
+								$(container).append(el);
 							};
 							
 							return that;
@@ -191,7 +212,22 @@
 					lenses: {
 						annotation: function(container, view, model, itemId) {
 							var that = {}, item = model.getItem(itemId), el = '<li>',
-							anno, target, body;
+							anno, target, body,
+							sendAnnoRequest = function(annoSend) {
+								// push to the annotation server
+								$.ajax({
+									url: phpCDBypass,
+									type: 'POST',
+									dataType: 'text',
+									data: {urlsend: post_anno_uri, datasend: JSON.stringify(anno)},
+									success: function(d) {
+										
+									},
+									error: function(xhr, status, e) {
+										console.log('error '+e+'  '+JSON.stringify(xhr));
+									}
+								});
+							};
 							
 							el += '<p>'+item.id[0]+'</p>'+
 							'<p>'+item.hasBody[0]+'</p>'+
@@ -211,21 +247,30 @@
 									constraint: target.constraint[0]
 								}]
 							};
-							console.log('anno: ');
-							console.log(JSON.stringify(anno));
-							// push to the annotation server
-							$.ajax({
-								url: phpCDBypass,
-								type: 'POST',
-								dataType: 'text',
-								data: {urlsend: post_anno_uri, datasend: JSON.stringify(anno)},
-								success: function(d) {
-									console.log('anno object is returned: '+d);
-								},
-								error: function(xhr, status, e) {
-									console.log('error '+e+'  '+JSON.stringify(xhr));
-								}
-							});
+							
+							sendAnnoRequest(anno);
+							
+							that.update = function(item) {
+								el += '<p>'+item.id[0]+'</p>'+
+								'<p>'+item.hasBody[0]+'</p>'+
+								'<p>'+item.hasTargets[0]+'</p>'+
+								'</li>';
+
+								$("#"+$(container).attr('id')+" > ul").append(el);
+								// get target and body items
+								target = model.getItem(item.hasTargets[0]);
+
+								// prep for server/convert data
+								anno = {
+									author_uri: author_uri,
+									body_uri: item.hasBody[0],
+									targets: [{
+										uri: target.id[0],
+										constraint: target.constraint[0]
+									}]
+								};
+								sendAnnoRequest(anno);
+							};
 							
 							return that;
 						}
