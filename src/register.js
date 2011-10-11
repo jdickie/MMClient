@@ -100,8 +100,8 @@
 				'<div id="BodyTextArea">'+
 					'<h3>Put your annotation text here</h3>'+
 					'<div id="targetID"></div>'+
-					'<textarea id="bodyContent" cols="100" rows="20"></textarea>'+			
-
+					'<textarea id="bodyContent" cols="55" rows="20"></textarea>'+			
+					'<br/>'+
 					'<button id="bodyLoad">Load Body</button>'+
 
 					'<div id="bodyLoadTable"></div>'+
@@ -115,7 +115,8 @@
 						'</ul>'+
 					'</div>'+			
 				'</div>'+
-			'</div>', // dataStoreDisplay is for debugging
+			'</div>'+
+			'<div id="servermessage"></div>', // dataStoreDisplay is for debugging
 			presentations: {
 				TextAreaContent: {
 					type: MITHGrid.Presentation.TextArea,
@@ -465,6 +466,13 @@
 				type: 'POST',
 				dataType: 'text',
 				data: {urlsend: constrain_anno_uri, datasend: JSON.stringify(cObj)},
+				beforeSend: function(xhr) {
+					// show loading
+					$("#targetmessage").empty().append("<p>Loading...</p>");
+				},
+				afterSend: function() {
+					$("#targetmessage").empty();
+				},
 				success: function(constraint) {
 					
 					console.log('success reached '+constraint);
@@ -502,6 +510,17 @@
 			// Load the target object into Data Store
 			$("body").bind("TargetTextSelected", registerConstraint);
 			$("body").bind("TargetTextParsed", getTargetSelection);
+			$("#servermessage").bind("ajaxStart", function() {
+				// adjust scrolltop
+				var top = parseInt($(this).css('top'), 10);
+				$(this).css('top',(top + $(document).scrollTop()));
+				$(this).empty().append('<p>Loading...</p>').show();
+			});
+			
+			$("#servermessage").bind("ajaxComplete", function() {
+				
+				$(this).empty().hide();
+			});
 			
 			// Load the Body object in order to get back a unique
 			// URI value
