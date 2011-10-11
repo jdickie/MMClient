@@ -426,23 +426,22 @@
 		checkHasBody = function(uri) {
 			// checking against local data store 
 		},
-		getTargetSelection = function(e, text, constraint) {
+		getTargetSelection = function(e, text, targetURI, constraint) {
 			// callback for the TargetTextSelected event
 			// Retrieves the text the user selects and inputs
 			// into the data store
 			var targetObj = {}, targets, query = that.dataStore.MM.prepare([".type='target'"]);
 			targets = query.length;
-			targetId = 't'+(Math.ceil(Math.random() * 1000));
+			console.log(targetURI);
 			targetObj = {
-				id: targetId,
+				id: 't'+(Math.ceil(Math.random()*100)),
+				uri: targetURI,
 				type: 'target',
 				content: text,
 				mime_type: "text/html",
 				constraint: constraint
 			};
 			that.dataStore.MM.loadItems([targetObj]);
-			// register this target ID to body area
-			$("#targetID").text(targetObj.id);
 		},
 		// Registers an OAC-annotation constraint from 
 		// a text selection
@@ -478,7 +477,7 @@
 					console.log('success reached '+constraint);
 					
 					
-					$("body:first").trigger("TargetTextParsed", [txt, JSON.parse(constraint)]);
+					$("body:first").trigger("TargetTextParsed", [txt, textURI, JSON.parse(constraint)]);
 				},
 				complete: function(xhr, status) {
 					console.log(xhr);
@@ -591,7 +590,7 @@
 				'It is a fault gainst heauen, fault gainst the dead,'+
 				'A fault gainst nature, and in reasons'+
 				'Common course most certaine,'
-			},{"type":"body","id":"http://interedition.performantsoftware.com/annotation_bodies/86","content":"","mime_type":"text/html","uri":"http://interedition.performantsoftware.com/annotation_bodies/86"}
+			}//,{"type":"body","id":"http://interedition.performantsoftware.com/annotation_bodies/86","content":"","mime_type":"text/html","uri":"http://interedition.performantsoftware.com/annotation_bodies/86"}
 			]);
 			
 			
