@@ -14,3 +14,10 @@ Service Wrapper for the online OAC annotation repository and constraint services
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+jQuery, RaphaelJS, and MITHGrid are outside source codes used in this program that each
+operate under a different license. Please consult their URLs for more information:
+
+jQuery: www.jquery.com
+RaphaelJS: www.raphaeljs.com
+MITHGrid: https://github.com/umd-mith/mithgrid
