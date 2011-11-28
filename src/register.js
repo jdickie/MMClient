@@ -283,9 +283,9 @@
 			
 		})),
 		author_uri = 'Grant',
-		post_body_uri = 'http://interedition.performantsoftware.com/annotation_bodies',
-		post_anno_uri = 'http://interedition.performantsoftware.com/annotations.json',
-		constrain_anno_uri = 'http://172.17.6.140:8182/oac-constraint/create',
+		post_body_uri = 'http://87.106.12.254:3000/annotation_bodies',
+		post_anno_uri = 'http://87.106.12.254:3000/annotations.json',
+		constrain_anno_uri = 'http://87.106.12.254:8182/oac-constraint/create',
 		constrain_anno_match_uri = 'http://87.106.12.254:8182/oac-constraint/match',
 		phpCDBypass = 'src/callServer.php',
 		targetId = '',
