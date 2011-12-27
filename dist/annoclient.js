@@ -1,20 +1,93 @@
-(function($, MITHGrid) {
-    var author_uri = 'Grant',
-    post_body_uri = 'http://87.106.12.254:3000/annotation_bodies',
-    post_anno_uri = 'http://87.106.12.254:3000/annotations.json',
-    constrain_anno_uri = 'http://87.106.12.254:8182/oac-constraint/create',
-    constrain_anno_match_uri = 'http://87.106.12.254:8182/oac-constraint/match',
-    phpCDBypass = 'src/callServer.php',
-    targetId = '',
-    bodyId = 'http://interedition.performantsoftware.com/annotation_bodies/86';
+/*
+* MM Client Front-End
+* 
+* @author: Grant Dickie
+* 
+* Uses MITHGrid - (c) 2011 MITH
+* 
+* This is a MITHGrid application of the OAC Annotation Repository framework produced by Asaf Bartov, Moritz Wissenbach,
+* Marco Petris, and fellow from the University of Madrid. The server stores annotations and allows for querying across
+* the already stored annotations with REST calls. Each Annotation, Body, and Target are given REST paths once stored
+* at the server level. They can be retrieved using these calls. Note: the Ruby server returns a status of 302 when an
+* annotation is successfully stored.
+* 
+* Locally, all annotations for a particular target are stored in the MITHGrid datastore. When a user enters a new 
+* Target path, the annotations for that Target are automatically queried and retrived from the server via REST and
+* put into the local data store in order to be queried against locally and provide faster service. Further use cases
+* should be considered, where a user wants to query against more than just annotations on a the given Target.  
+*
+* Currently this is being only implemented to handle registration of a particular annotation to the server. 
+*  
+*/
 
-    // Set up presentation layers
+var MITHGrid = MITHGrid || {};
+var jQuery = jQuery || {};
+var Interedition = Interedition || {};
+var app = app || {};
+
+MITHGrid.globalNamespace('Interedition');
+Interedition.namespace('Client');
+Interedition.Client.namespace('AnnotationRegistration');/*
+Controllers.js
+*/
+ (function($, MITHGrid, Interedition) {
+    var Controller = Interedition.Client.AnnotationRegistration.namespace('Interedition.Controllers');
+
+    /*
+For picking up rangy selections within the Javascript CDATA
+*/
+    Controller.namespace('Rangy');
+    Controller.Rangy.initController = function(options) {
+        var that = MITHGrid.Controller.initController("Interedition.Client.AnnotationRegistration.Controller.Rangy", options);
+        options = that.options;
+
+        that.applyBindings = function(binding, opts) {
+            var _getChildNumber = function(obj) {
+                if (obj.parentNode) {
+                    var children = obj.parentNode.childNodes;
+                    var num;
+                    for (var i = 0; i < children.length; i++) {
+                        if (children[i].isSameNode(obj)) {
+
+                            return i;
+                        }
+                    }
+                }
+
+                return null;
+            }, 
+			sel, startIndex,
+			textDiv = binding.locate('textDiv');
+
+            // Rangy object to be re-used
+            rangy.init();
+            // set up mouse listeners
+            $(textDiv).mouseup(function(e) {
+                // get the selection the user made,
+                // trigger event to pass the text
+                sel = rangy.getSelection();
+                // add start and end indexes
+                startIndex = _getChildNumber(sel.anchorNode),
+                endIndex = _getChildNumber(sel.focusNode);
+
+                startNode = $(sel.anchorNode.parentNode).getPath();
+                endNode = $(sel.focusNode.parentNode).getPath();
+
+                $("body:first").trigger("TargetTextSelected", [sel, startIndex, endIndex, startNode, endNode]);
+            });
+
+        };
+
+
+        return that;
+    };
+
+});(function($, MITHGrid) {
+	// Set up presentation layers
     Interedition.Client.AnnotationRegistration.Presentation.namespace('TextArea');
     Interedition.Client.AnnotationRegistration.Presentation.TextArea.initPresentation = function(container, options) {
         var that = Interedition.Client.AnnotationRegistration.Presentation.initPresentation("Interedition.Client.AnnotationRegistration.Presentation.TextArea", container, options),
-        rangy;
-        rangy = options.controllers.rangy;
-        that.rangy = rangy.initController(container, {});
+      
 
         return that;
     };
@@ -23,6 +96,8 @@
     Interedition.Client.AnnotationRegistration.Presentation.namespace('TextRender');
     Interedition.Client.AnnotationRegistration.Presentation.TextRender.initPresentation = function(container, options) {
         var that = Interedition.Client.AnnotationRegistration.Presentation.initPresentation("Interedition.Client.AnnotationRegistration.Presentation.TextRender", container, options);
+
+
 
         return that;
     };
@@ -49,21 +124,27 @@
             viewSetup: '<div id="annoRegisterForm">' +
             '<div id = "TargetDiv">' +
             '<h2>Anno Target :</h2><br/>' +
+
             '<div id="textBodyTarget"></div>	' +
+
             '<div id="targetLoadTable"></div>' +
             '</div>' +
+
             '<div id="BodyTextArea">' +
             '<h3>Put your annotation text here</h3>' +
             '<div id="targetID"></div>' +
             '<textarea id="bodyContent" cols="55" rows="20"></textarea>' +
             '<br/>' +
             '<button id="bodyLoad">Load Body</button>' +
+
             '<div id="bodyLoadTable"></div>' +
             '</div>' +
+
             '<div id="AnnoArea">' +
             '	<button id="submitAnno">Submit Annotation</button>	' +
             '<div id="annotationTable">' +
             '<ul>' +
+
             '</ul>' +
             '</div>' +
             '</div>' +
@@ -82,6 +163,82 @@
 
                             // render item as UTF-8 in textarea
                             container.empty().append('<p>' + item.content + '</p>');
+                            // create a new Rangy object for
+                            // text selection
+                            view.rangy = rangy.createRange();
+
+                            that.update = function(item) {
+                                view.rangy = rangy.createRange();
+                            };
+
+                            return that;
+                        }
+                    }
+                },
+                TextBodyDisp: {
+                    type: Interedition.Client.AnnotationRegistration.Presentation.TextRender,
+                    container: "#BodyData",
+                    dataView: 'TextBody',
+                    lenses: {
+                        body: function(container, view, model, itemId) {
+                            // Receives Body objects that have mime type text/html
+                            var that = {},
+                            item = model.getItem(itemId),
+                            el;
+                            console.log('body loaded: ' + JSON.stringify(item));
+                            el = '<li>' +
+                            '<p>' + item.id[0] + '</p>' +
+                            '<br/>' +
+                            '<p>' + item.mime_type[0] + '</p>' +
+                            '<br/>' +
+                            '<p>' + item.content[0] + '</p>' +
+                            '</li>';
+
+                            $("#bodyLoadTable").append(el);
+
+                            that.update = function(item) {
+                                el = '<li>' +
+                                '<p>' + item.id[0] + '</p>' +
+                                '<br/>' +
+                                '<p>' + item.mime_type[0] + '</p>' +
+                                '<br/>' +
+                                '<p>' + item.content[0] + '</p>' +
+                                '</li>';
+
+                                $("#bodyLoadTable").append(el);
+                            };
+
+                            return that;
+                        }
+                    }
+                },
+                TargetDisp: {
+                    type: Interedition.Client.AnnotationRegistration.Presentation.Target,
+                    container: "#targetLoadTable",
+                    dataView: 'TargetURI',
+                    lenses: {
+                        target: function(container, view, model, itemId) {
+                            // analyses the URI for the target and displays the item
+                            // that the URI is pointing to
+                            var that = {},
+                            item = model.getItem(itemId),
+                            el = '<div><strong>Target Found:</strong><br/>',
+                            textItem = model.prepare([".type='text'"]);
+
+                            el += '<p>' + item.id[0] + '</p>' +
+                            '<p>' + item.type[0] + '</p>' +
+                            '<p>' + item.content[0] + '</p>' +
+                            '<p><pre>' + JSON.stringify(item.constraint[0]).replace(/\\+/g) + '</pre></p>';
+                            $(container).append(el);
+
+                            that.update = function(item) {
+                                el += '<p>' + item.id[0] + '</p>' +
+                                '<p>' + item.type[0] + '</p>' +
+                                '<p>' + item.content[0] + '</p>' +
+                                '<p><pre>' + JSON.stringify(item.constraint[0]).replace(/\\+/g) + '</pre></p>';
+                                $(container).append(el);
+                            };
+
                             return that;
                         }
                     }
@@ -167,11 +324,16 @@
                 }
             }
 
-        }));
-
-
-
-        app.validate = function(uri) {
+        })),
+        author_uri = 'Grant',
+        post_body_uri = 'http://87.106.12.254:3000/annotation_bodies',
+        post_anno_uri = 'http://87.106.12.254:3000/annotations.json',
+        constrain_anno_uri = 'http://87.106.12.254:8182/oac-constraint/create',
+        constrain_anno_match_uri = 'http://87.106.12.254:8182/oac-constraint/match',
+        phpCDBypass = 'src/callServer.php',
+        targetId = '',
+        bodyId = 'http://interedition.performantsoftware.com/annotation_bodies/86',
+        validate = function(uri) {
             if (! (/^http/.test(uri))) {
                 $("#validationImage").attr('src', 'images/001_05.png');
             } else {
@@ -179,16 +341,15 @@
                 $("#validationImage").attr('src', 'images/001_06.png');
             }
 
-        };
-
-        app.getBodyContent = function() {
+        },
+        getBodyContent = function() {
             // return either the value from textarea
             // or from the URI input depending on state of radio
             // buttons
             return $("#BodyTextArea > textarea").text();
 
-        };
-        app.getBodyURI = function(bodyObj) {
+        },
+        getBodyURI = function(bodyObj) {
             // Takes a Body object and returns the unique
             // URI after sending it to client via POST
             // send body object
@@ -224,9 +385,8 @@
 
 
 
-        };
-
-        app.parseExportAnno = function(anno) {
+        },
+        parseExportAnno = function(anno) {
             // take a local data store copy of an annotation,
             // parse it into client-friendly JSON, then return
             var result = {},
@@ -250,9 +410,8 @@
 
             return result;
 
-        };
-
-        app.parseInputAnno = function(annoURI, anno) {
+        },
+        parseInputAnno = function(annoURI, anno) {
             // Returns a flattened JSON version of returned
             // OAC annotation for the MITHGrid data store
             var base = anno.annotation,
@@ -302,10 +461,15 @@
                     targets.push(target);
                 });
             });
-        };
+        },
+        // Checks to see if other annotations already exist
+        checkAnnos = function(uri) {
+            var duplicateSearch = that.dataStore.MM.prepare([".uri"]),
+            uris = [];
 
+        },
         // Checks for other target objects of similar origin
-        app.checkHasTarget = function(uri) {
+        checkHasTarget = function(uri) {
             var target = {},
             targetRecs = that.dataStore.MM.prepare(["target.uri"]),
             collect = targetRecs.evaluate([uri]);
@@ -316,9 +480,13 @@
                 // if new, create new record and return
                 }
 
-        };
-
-        app.getTargetSelection = function(e, text, targetURI, constraint) {
+        },
+        // Check to see if a particular URI path relates to a
+        //  already checked-in Body
+        checkHasBody = function(uri) {
+            // checking against local data store
+            },
+        getTargetSelection = function(e, text, targetURI, constraint) {
             // callback for the TargetTextSelected event
             // Retrieves the text the user selects and inputs
             // into the data store
@@ -337,11 +505,10 @@
                 constraint: constraint.constraint
             };
             that.dataStore.MM.loadItems([targetObj]);
-        };
-
+        },
         // Registers an OAC-annotation constraint from
         // a text selection
-        app.registerConstraint = function(e, sel, start, end) {
+        registerConstraint = function(e, sel, start, end) {
             var cObj = {},
             linepos = 'line=' + start + ',' + end,
             ranges = sel.getAllRanges(),
@@ -355,6 +522,7 @@
                     position: linepos
                 }
             };
+            console.log('register Constraint: ' + JSON.stringify(cObj) + ' ' + phpCDBypass);
             // call constraint service
             $.ajax({
                 url: phpCDBypass,
@@ -382,7 +550,19 @@
                     console.log(xhr);
                 }
             });
+
+            // var http_request = new XMLHttpRequest();
+            // 			http_request.open( "POST", constrain_anno_uri, true );
+            // 			http_request.setRequestHeader("Content-type","application/json");
+            // 			http_request.onreadystatechange = function () {
+            // 			    if ( http_request.readyState == 4 && http_request.status == 200 ) {
+            // 			            console.log('200 ok: '+JSON.stringify(http_request.responseText));
+            // 			        }
+            // 			};
+            // 			http_request.send(JSON.stringify(cObj));
+
         };
+
 
         that.ready(function() {
             $("#TargetURI > input").focusout(function(e) {
@@ -433,6 +613,7 @@
             // callback functions
             $("#submitAnno").click(function(e) {
                 e.preventDefault();
+
 
                 // get datestamp
                 var d = new Date(),
@@ -494,3 +675,64 @@
 
 
 })(jQuery, MITHGrid);
+
+// Defaults that are common for the entire application
+MITHGrid.defaults("Interedition.Client.AnnotationRegistration.Application.MMClient", {
+
+    dataStores: {
+        // Defining what we kind of Object schema we expect from the
+        // service
+        MM: {
+            types: {
+                annotation: {},
+                body: {},
+                target: {}
+            },
+            properties: {
+
+                }
+        }
+    },
+    dataViews: {
+        // Viewing only the text to be inserted into a textarea
+        TextContent: {
+            label: 'TextContent',
+            types: ['text'],
+            dataStore: 'MM'
+        },
+        // Body objects that are referenced by text that a user
+        // enters into the textarea
+        TextBody: {
+            label: "TextBody",
+            types: ["body"],
+            dataStore: 'MM'
+        },
+        // All target objects. Will expand into targets referencing
+        // other Annotations.
+        TargetURI: {
+            label: "TargetURI",
+            types: ["target"],
+            dataStore: 'MM'
+        },
+        // Resulting annotations minted by the MM service
+        AnnotationDisp: {
+            label: 'AnnoDisp',
+            types: ["annotation"],
+            dataStore: 'MM'
+        }
+    }
+});/* 
+Custom defaults for Application Registration
+*/
+
+MITHGrid.defaults("Interedition.Client.AnnotationRegistration.Rangy", {
+	bind: {
+		events: {
+			onMouseUp: null
+		}
+	}
+});
+
+// End of Interedition MM Client
+
+// @author Grant Dickie

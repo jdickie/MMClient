@@ -14,7 +14,20 @@ MITHGrid.defaults("Interedition.Client.AnnotationRegistration.Rangy", {
 
 // Defaults that are common for the entire application
 MITHGrid.defaults("Interedition.Client.AnnotationRegistration.Application.MMClient", {
-
+	controllers: {
+		rangy: {
+			type: Interedition.Client.AnnotationRegistration.Controller.Rangy,
+			selectors: {
+				doc: ''
+			}
+		},
+		server: {
+			type: Interedition.Client.AnnotationRegistration.Controller.Server,
+			selectors: {
+				
+			}
+		}
+	},
     dataStores: {
         // Defining what we kind of Object schema we expect from the
         // service

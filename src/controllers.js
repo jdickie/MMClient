@@ -28,7 +28,7 @@ For picking up rangy selections within the Javascript CDATA
                 return null;
             }, 
 			sel, startIndex,
-			textDiv = binding.locate('textDiv');
+			textDiv = binding.locate('doc');
 
             // Rangy object to be re-used
             rangy.init();
@@ -43,13 +43,11 @@ For picking up rangy selections within the Javascript CDATA
 
                 startNode = $(sel.anchorNode.parentNode).getPath();
                 endNode = $(sel.focusNode.parentNode).getPath();
-
-                $("body:first").trigger("TargetTextSelected", [sel, startIndex, endIndex, startNode, endNode]);
+				
+				options.events.fire([sel, startIndex, endIndex, startNode, endNode]);
             });
 
         };
-
-
         return that;
     };
 
@@ -60,7 +58,7 @@ For picking up rangy selections within the Javascript CDATA
 	*/
 	Controller.namespace('Buffer');
 	Controller.Buffer.initController = function(options) {
-		that = MITHGrid.Controller.initController('Interedition.Client.AnnotationRegistration.Controller.Buffer', options);
+		var that = MITHGrid.Controller.initController('Interedition.Client.AnnotationRegistration.Controller.Buffer', options);
 		options = that.options;
 		
 		that.applyBindings = function(binding, opts) {
@@ -70,6 +68,21 @@ For picking up rangy selections within the Javascript CDATA
 		return that;
 	};
 	
-	
+	/*
+	Interface between Annotation Registration server, constraint server
+	*/
+	Controller.namespace('Server');
+	Controller.Server.initController = function(options) {
+		var that = MITHGrid.Controller.initController('Interedition.Client.AnnotationRegistration.Controller.Server', options);
+		options = that.options;
+		
+		that.applyBindings = function(binding, opts) {
+			
+			
+			
+		};
+		
+		return that;
+	};
 
 });
