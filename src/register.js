@@ -1,9 +1,17 @@
 (function($, MITHGrid) {
-	// Set up presentation layers
+    var author_uri = 'Grant',
+    post_body_uri = 'http://87.106.12.254:3000/annotation_bodies',
+    post_anno_uri = 'http://87.106.12.254:3000/annotations.json',
+    constrain_anno_uri = 'http://87.106.12.254:8182/oac-constraint/create',
+    constrain_anno_match_uri = 'http://87.106.12.254:8182/oac-constraint/match',
+    phpCDBypass = 'src/callServer.php',
+    targetId = '',
+    bodyId = 'http://interedition.performantsoftware.com/annotation_bodies/86';
+
+    // Set up presentation layers
     Interedition.Client.AnnotationRegistration.Presentation.namespace('TextArea');
     Interedition.Client.AnnotationRegistration.Presentation.TextArea.initPresentation = function(container, options) {
-        var that = Interedition.Client.AnnotationRegistration.Presentation.initPresentation("Interedition.Client.AnnotationRegistration.Presentation.TextArea", container, options),
-      
+        var that = Interedition.Client.AnnotationRegistration.Presentation.initPresentation("Interedition.Client.AnnotationRegistration.Presentation.TextArea", container, options);
 
         return that;
     };
@@ -12,8 +20,6 @@
     Interedition.Client.AnnotationRegistration.Presentation.namespace('TextRender');
     Interedition.Client.AnnotationRegistration.Presentation.TextRender.initPresentation = function(container, options) {
         var that = Interedition.Client.AnnotationRegistration.Presentation.initPresentation("Interedition.Client.AnnotationRegistration.Presentation.TextRender", container, options);
-
-
 
         return that;
     };
@@ -40,27 +46,21 @@
             viewSetup: '<div id="annoRegisterForm">' +
             '<div id = "TargetDiv">' +
             '<h2>Anno Target :</h2><br/>' +
-
             '<div id="textBodyTarget"></div>	' +
-
             '<div id="targetLoadTable"></div>' +
             '</div>' +
-
             '<div id="BodyTextArea">' +
             '<h3>Put your annotation text here</h3>' +
             '<div id="targetID"></div>' +
             '<textarea id="bodyContent" cols="55" rows="20"></textarea>' +
             '<br/>' +
             '<button id="bodyLoad">Load Body</button>' +
-
             '<div id="bodyLoadTable"></div>' +
             '</div>' +
-
             '<div id="AnnoArea">' +
             '	<button id="submitAnno">Submit Annotation</button>	' +
             '<div id="annotationTable">' +
             '<ul>' +
-
             '</ul>' +
             '</div>' +
             '</div>' +
@@ -101,7 +101,6 @@
                             var that = {},
                             item = model.getItem(itemId),
                             el;
-                            console.log('body loaded: ' + JSON.stringify(item));
                             el = '<li>' +
                             '<p>' + item.id[0] + '</p>' +
                             '<br/>' +
@@ -240,16 +239,11 @@
                 }
             }
 
-        })),
-        author_uri = 'Grant',
-        post_body_uri = 'http://87.106.12.254:3000/annotation_bodies',
-        post_anno_uri = 'http://87.106.12.254:3000/annotations.json',
-        constrain_anno_uri = 'http://87.106.12.254:8182/oac-constraint/create',
-        constrain_anno_match_uri = 'http://87.106.12.254:8182/oac-constraint/match',
-        phpCDBypass = 'src/callServer.php',
-        targetId = '',
-        bodyId = 'http://interedition.performantsoftware.com/annotation_bodies/86',
-        validate = function(uri) {
+        }));
+
+
+
+        app.validate = function(uri) {
             if (! (/^http/.test(uri))) {
                 $("#validationImage").attr('src', 'images/001_05.png');
             } else {
@@ -257,15 +251,16 @@
                 $("#validationImage").attr('src', 'images/001_06.png');
             }
 
-        },
-        getBodyContent = function() {
+        };
+
+        app.getBodyContent = function() {
             // return either the value from textarea
             // or from the URI input depending on state of radio
             // buttons
             return $("#BodyTextArea > textarea").text();
 
-        },
-        getBodyURI = function(bodyObj) {
+        };
+        app.getBodyURI = function(bodyObj) {
             // Takes a Body object and returns the unique
             // URI after sending it to client via POST
             // send body object
@@ -301,8 +296,9 @@
 
 
 
-        },
-        parseExportAnno = function(anno) {
+        };
+
+        app.parseExportAnno = function(anno) {
             // take a local data store copy of an annotation,
             // parse it into client-friendly JSON, then return
             var result = {},
@@ -326,8 +322,9 @@
 
             return result;
 
-        },
-        parseInputAnno = function(annoURI, anno) {
+        };
+
+        app.parseInputAnno = function(annoURI, anno) {
             // Returns a flattened JSON version of returned
             // OAC annotation for the MITHGrid data store
             var base = anno.annotation,
@@ -377,15 +374,10 @@
                     targets.push(target);
                 });
             });
-        },
-        // Checks to see if other annotations already exist
-        checkAnnos = function(uri) {
-            var duplicateSearch = that.dataStore.MM.prepare([".uri"]),
-            uris = [];
+        };
 
-        },
         // Checks for other target objects of similar origin
-        checkHasTarget = function(uri) {
+        app.checkHasTarget = function(uri) {
             var target = {},
             targetRecs = that.dataStore.MM.prepare(["target.uri"]),
             collect = targetRecs.evaluate([uri]);
@@ -396,13 +388,9 @@
                 // if new, create new record and return
                 }
 
-        },
-        // Check to see if a particular URI path relates to a
-        //  already checked-in Body
-        checkHasBody = function(uri) {
-            // checking against local data store
-            },
-        getTargetSelection = function(e, text, targetURI, constraint) {
+        };
+
+        app.getTargetSelection = function(e, text, targetURI, constraint) {
             // callback for the TargetTextSelected event
             // Retrieves the text the user selects and inputs
             // into the data store
@@ -421,10 +409,11 @@
                 constraint: constraint.constraint
             };
             that.dataStore.MM.loadItems([targetObj]);
-        },
+        };
+
         // Registers an OAC-annotation constraint from
         // a text selection
-        registerConstraint = function(e, sel, start, end) {
+        app.registerConstraint = function(e, sel, start, end) {
             var cObj = {},
             linepos = 'line=' + start + ',' + end,
             ranges = sel.getAllRanges(),
@@ -438,7 +427,6 @@
                     position: linepos
                 }
             };
-            console.log('register Constraint: ' + JSON.stringify(cObj) + ' ' + phpCDBypass);
             // call constraint service
             $.ajax({
                 url: phpCDBypass,
@@ -466,19 +454,7 @@
                     console.log(xhr);
                 }
             });
-
-            // var http_request = new XMLHttpRequest();
-            // 			http_request.open( "POST", constrain_anno_uri, true );
-            // 			http_request.setRequestHeader("Content-type","application/json");
-            // 			http_request.onreadystatechange = function () {
-            // 			    if ( http_request.readyState == 4 && http_request.status == 200 ) {
-            // 			            console.log('200 ok: '+JSON.stringify(http_request.responseText));
-            // 			        }
-            // 			};
-            // 			http_request.send(JSON.stringify(cObj));
-
         };
-
 
         that.ready(function() {
             $("#TargetURI > input").focusout(function(e) {
@@ -529,7 +505,6 @@
             // callback functions
             $("#submitAnno").click(function(e) {
                 e.preventDefault();
-
 
                 // get datestamp
                 var d = new Date(),
@@ -591,50 +566,3 @@
 
 
 })(jQuery, MITHGrid);
-
-// Defaults that are common for the entire application
-MITHGrid.defaults("Interedition.Client.AnnotationRegistration.Application.MMClient", {
-
-    dataStores: {
-        // Defining what we kind of Object schema we expect from the
-        // service
-        MM: {
-            types: {
-                annotation: {},
-                body: {},
-                target: {}
-            },
-            properties: {
-
-                }
-        }
-    },
-    dataViews: {
-        // Viewing only the text to be inserted into a textarea
-        TextContent: {
-            label: 'TextContent',
-            types: ['text'],
-            dataStore: 'MM'
-        },
-        // Body objects that are referenced by text that a user
-        // enters into the textarea
-        TextBody: {
-            label: "TextBody",
-            types: ["body"],
-            dataStore: 'MM'
-        },
-        // All target objects. Will expand into targets referencing
-        // other Annotations.
-        TargetURI: {
-            label: "TargetURI",
-            types: ["target"],
-            dataStore: 'MM'
-        },
-        // Resulting annotations minted by the MM service
-        AnnotationDisp: {
-            label: 'AnnoDisp',
-            types: ["annotation"],
-            dataStore: 'MM'
-        }
-    }
-});
