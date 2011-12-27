@@ -79,7 +79,8 @@
 
                             // render item as UTF-8 in textarea
                             container.empty().append('<p>' + item.content + '</p>');
-                            // create a new Rangy object for
+                            
+							// create a new Rangy object for
                             // text selection
                             view.rangy = rangy.createRange();
 

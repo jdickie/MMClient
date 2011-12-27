@@ -5,10 +5,12 @@ Custom defaults for Application Registration
 MITHGrid.defaults("Interedition.Client.AnnotationRegistration.Rangy", {
 	bind: {
 		events: {
-			onMouseUp: null
+			onMouseUp: null,
+			onMouseDown: null
 		}
 	}
 });
+
 
 // Defaults that are common for the entire application
 MITHGrid.defaults("Interedition.Client.AnnotationRegistration.Application.MMClient", {
