@@ -2,7 +2,7 @@
 Custom defaults for Application Registration
 */
 
-MITHGrid.defaults("Interedition.Client.AnnotationRegistration.Rangy", {
+MITHGrid.defaults("Interedition.Client.AnnotationRegistration.Controller.Rangy", {
 	bind: {
 		events: {
 			onMouseUp: null,
@@ -13,7 +13,7 @@ MITHGrid.defaults("Interedition.Client.AnnotationRegistration.Rangy", {
 
 
 // Defaults that are common for the entire application
-MITHGrid.defaults("Interedition.Client.AnnotationRegistration.Application.MMClient", {
+MITHGrid.defaults("Interedition.Client.AnnotationRegistration.MMClient", {
 	controllers: {
 		rangy: {
 			type: Interedition.Client.AnnotationRegistration.Controller.Rangy,
@@ -38,34 +38,44 @@ MITHGrid.defaults("Interedition.Client.AnnotationRegistration.Application.MMClie
                 target: {}
             },
             properties: {
-
-                }
+				bodyType: {
+					valueType: 'text'
+				},
+				bodyContent: {
+					valueType: 'text'
+				},
+				targetURI: {
+					valueType: 'uri'
+				},
+				constraintURI: {
+					valueType: 'uri'
+				},
+				bodyURI: {
+					valueType: 'uri'
+				}
+            }
         }
     },
     dataViews: {
         // Viewing only the text to be inserted into a textarea
         TextContent: {
-            label: 'TextContent',
             types: ['text'],
             dataStore: 'MM'
         },
         // Body objects that are referenced by text that a user
         // enters into the textarea
         TextBody: {
-            label: "TextBody",
             types: ["body"],
             dataStore: 'MM'
         },
         // All target objects. Will expand into targets referencing
         // other Annotations.
         TargetURI: {
-            label: "TargetURI",
             types: ["target"],
             dataStore: 'MM'
         },
         // Resulting annotations minted by the MM service
         AnnotationDisp: {
-            label: 'AnnoDisp',
             types: ["annotation"],
             dataStore: 'MM'
         }

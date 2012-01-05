@@ -13,7 +13,7 @@ COMPILER = ${JS_ENGINE} ${BUILD_DIR}/uglify.js --unsafe
 POST_COMPILER = ${JS_ENGINE} ${BUILD_DIR}/post-compile.js
 
 BASE_FILES = ${SRC_DIR}/controllers.js \
-	${SRC_DIR}/register.js \
+	${SRC_DIR}/selecttext.js \
 
 MG = ${DIST_DIR}/annoclient.js
 MG_MIN = ${DIST_DIR}/annoclient.min.js

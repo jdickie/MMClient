@@ -9,11 +9,10 @@
 	<meta name="author" content="Grant Dickie">
 	<!-- Date: 2011-10-08 -->
 	<script type="text/javascript" src="lib/jquery.js"></script>
-	<script type="text/javascript" src="lib/infusion.js"></script>
 	<script type="text/javascript" src="lib/rangy-core.js"></script>
 	<script type="text/javascript" src="lib/mithgrid.js"></script>
 	<script type="text/javascript" src="lib/json2.js"></script>
-	<script type="text/javascript" src="src/register.js"></script>
+	<script type="text/javascript" src="dist/annoclient.js"></script>
 	<style>
 		#targetLoadTable {
 			background: #aefccc;
@@ -57,7 +56,7 @@
 		</div>
 		
 	<script type="text/javascript">
-		var engine = MITHGrid.Application.MMClient.initApp("#main", {});
+		var engine = Interedition.Client.AnnotationRegistration.MMClient.initApp("#main", {});
 		engine.run();
 	</script>	
 </body>

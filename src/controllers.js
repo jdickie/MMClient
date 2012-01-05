@@ -2,7 +2,7 @@
 Controllers.js
 */
  (function($, MITHGrid, Interedition) {
-    var Controller = Interedition.Client.AnnotationRegistration.namespace('Interedition.Controllers');
+    var Controller = Interedition.Client.AnnotationRegistration.namespace('Controller');
 
     /*
 For picking up rangy selections within the Javascript CDATA
@@ -15,23 +15,24 @@ For picking up rangy selections within the Javascript CDATA
         that.applyBindings = function(binding, opts) {
             var getChildNumber = function(obj) {
                 if (obj.parentNode) {
-                    var children = obj.parentNode.childNodes;
-                    var num;
-                    for (var i = 0; i < children.length; i++) {
-                        if (children[i].isSameNode(obj)) {
-
+                    var children = obj.parentNode.childNodes,
+					num, i;
+					$.each(children, function(i, o) {
+						if (children[i].isSameNode(obj)) {
                             return i;
                         }
-                    }
+					});
                 }
 
                 return null;
-            }, 
-			sel, startIndex,
-			textDiv = binding.locate('doc');
+            },
+            sel,
+            startIndex,
+			endIndex,
+			endNode,
+			startNode,
+            textDiv = binding.locate('doc');
 
-            // Rangy object to be re-used
-            rangy.init();
             // set up mouse listeners
             $(textDiv).mouseup(function(e) {
                 // get the selection the user made,
@@ -43,46 +44,123 @@ For picking up rangy selections within the Javascript CDATA
 
                 startNode = $(sel.anchorNode.parentNode).getPath();
                 endNode = $(sel.focusNode.parentNode).getPath();
-				
-				options.events.fire([sel, startIndex, endIndex, startNode, endNode]);
+
+                options.events.onMouseUp.fire([{
+					sel: sel, 
+					start: startIndex, 
+					end: endIndex, 
+					startNode: startNode, 
+					endNode: endNode
+				}]);
             });
 
         };
         return that;
     };
 
-	/*
+    /*
 	Buffer
 	Controller API for pushing data from local datastore to a given location. Location is given through setOrigin(), data
 	added through commit(), data pushed to given origin through push()
 	*/
-	Controller.namespace('Buffer');
-	Controller.Buffer.initController = function(options) {
-		var that = MITHGrid.Controller.initController('Interedition.Client.AnnotationRegistration.Controller.Buffer', options);
-		options = that.options;
-		
-		that.applyBindings = function(binding, opts) {
-			
-		};
-		
-		return that;
-	};
-	
-	/*
+    Controller.namespace('Buffer');
+    Controller.Buffer.initController = function(options) {
+        var that = MITHGrid.Controller.initController('Interedition.Client.AnnotationRegistration.Controller.Buffer', options);
+        options = that.options;
+
+        that.applyBindings = function(binding, opts) {
+
+            };
+
+        return that;
+    };
+
+    /*
 	Interface between Annotation Registration server, constraint server
 	*/
-	Controller.namespace('Server');
-	Controller.Server.initController = function(options) {
-		var that = MITHGrid.Controller.initController('Interedition.Client.AnnotationRegistration.Controller.Server', options);
-		options = that.options;
-		
-		that.applyBindings = function(binding, opts) {
-			
-			
-			
-		};
-		
-		return that;
-	};
+    Controller.namespace('Server');
+    Controller.Server.initController = function(options) {
+        var that = MITHGrid.Controller.initController('Interedition.Client.AnnotationRegistration.Controller.Server', options),
+		registerBodyURL, registerTargetURL;
+        options = that.options;
 
-});
+		registerBodyURL = options.bodyURL;
+		registerTargetURL = options.targetURL;
+        that.applyBindings = function(binding, opts) {
+            var sendAnnoRequest = function(annoSend) {
+                // push to the annotation server
+                $.ajax({
+                    url: opts.phpCDBypass,
+                    type: 'POST',
+                    dataType: 'text',
+                    data: {
+                        urlsend: opts.post_anno_uri,
+                        datasend: JSON.stringify(annoSend)
+                    },
+                    success: function(d) {
+                        $(container).append('<p>' + d + '</p>');
+                    },
+                    error: function(xhr, status, e) {
+                        console.log('error ' + e + '  ' + JSON.stringify(xhr));
+                    }
+                });
+            },
+            createConstraint = function() {
+				
+            };
+
+            binding.registerBody = function(bodyObj) {
+				$.ajax({
+					url: registerBodyURL,
+					type: 'POST',
+					dataType: 'text',
+					data: bodyObj,
+					success: function(u) {
+						options.events.onCallSuccess.fire(u);
+					}
+				});
+            };
+
+            binding.registerTarget = function(targetObj) {
+				$.ajax({
+					url: registerTargetURL,
+					type: 'POST',
+					dataType: 'text',
+					data: targetObj,
+					success: function(u) {
+						options.events.onCallSuccess.fire(u);
+					}
+				});
+            };
+
+			binding.getConstraint = function(cObj) {
+				// call constraint service
+	            $.ajax({
+	                url: phpCDBypass,
+	                type: 'POST',
+	                dataType: 'text',
+	                data: {
+	                    urlsend: opts.constrain_anno_uri,
+	                    datasend: JSON.stringify(cObj)
+	                },
+	                beforeSend: function(xhr) {
+	                    // show loading
+	                    $("#targetmessage").empty().append("<p>Loading...</p>");
+	                },
+	                afterSend: function() {
+	                    $("#targetmessage").empty();
+	                },
+	                success: function(constraint) {
+	                    $("body:first").trigger("TargetTextParsed", [txt, textURI, JSON.parse(constraint)]);
+	                },
+	                complete: function(xhr, status) {
+	                    console.log(xhr);
+	                }
+	            });
+			};
+        };
+
+        return that;
+    };
+
+} (jQuery, MITHGrid, Interedition));

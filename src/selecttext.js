@@ -9,42 +9,55 @@
     bodyId = 'http://interedition.performantsoftware.com/annotation_bodies/86';
 
     // Set up presentation layers
-    Interedition.Client.AnnotationRegistration.Presentation.namespace('TextArea');
-    Interedition.Client.AnnotationRegistration.Presentation.TextArea.initPresentation = function(container, options) {
-        var that = Interedition.Client.AnnotationRegistration.Presentation.initPresentation("Interedition.Client.AnnotationRegistration.Presentation.TextArea", container, options),
-        rangy;
-        rangy = options.controllers.rangy;
-        that.rangy = rangy.initController(container, {});
-
+    MITHGrid.Presentation.namespace('TextArea');
+    MITHGrid.Presentation.TextArea.initPresentation = function(container, options) {
+        var that = MITHGrid.Presentation.initPresentation("MITHGrid.Presentation.TextArea", container, options),
+        registerTarget;
+        
+        that.rangy = options.controllers.rangy.bind(container, {});
+		that.server = options.controllers.server.bind(container, {});
+		registerTarget = function(item) {
+			var target, targetSearch, 
+			targetIds;
+			targetSearch = options.application.dataStores.MM.prepare(['.type']);
+			targetIds = targetSearch.evaluate('Target');
+			
+			linepos = 'line=' + item.start + ',' + item.end;
+            
+            textURI = 'http://quartos.org/lib/XMLDoc/viewXML.php?path=ham-1604-22276x-fol-c01.xml';
+            // convert item to constrain object
+            cObj = {
+                uri: textURI,
+                constraint: {
+                    position: linepos
+                }
+            };
+			
+			target = {
+				id: 'target' + targetIds.length,
+				type: 'Target',
+				hasConstraint: item.hasConstraint || '',
+				bodyType: 'text',
+				bodyContent: item.hasContent
+			};
+			options.application.dataStores.MM.loadItems([target]);
+		};
+		
+		that.rangy.events.onMouseUp.addListener(registerTarget);
         return that;
     };
 
-
-    Interedition.Client.AnnotationRegistration.Presentation.namespace('TextRender');
-    Interedition.Client.AnnotationRegistration.Presentation.TextRender.initPresentation = function(container, options) {
-        var that = Interedition.Client.AnnotationRegistration.Presentation.initPresentation("Interedition.Client.AnnotationRegistration.Presentation.TextRender", container, options);
-
-        return that;
-    };
-
-    Interedition.Client.AnnotationRegistration.Presentation.namespace('Target');
-    Interedition.Client.AnnotationRegistration.Presentation.Target.initPresentation = function(container, options) {
-        var that = Interedition.Client.AnnotationRegistration.Presentation.initPresentation("Interedition.Client.AnnotationRegistration.Presentation.Target", container, options);
-
-        return that;
-    };
-
-    Interedition.Client.AnnotationRegistration.Presentation.namespace('AnnoView');
-    Interedition.Client.AnnotationRegistration.Presentation.AnnoView.initPresentation = function(container, options) {
-        var that = Interedition.Client.AnnotationRegistration.Presentation.initPresentation("Interedition.Client.AnnotationRegistration.Presentation.AnnoView", container, options);
+    MITHGrid.Presentation.namespace('AnnoView');
+    MITHGrid.Presentation.AnnoView.initPresentation = function(container, options) {
+        var that = MITHGrid.Presentation.initPresentation("MITHGrid.Presentation.AnnoView", container, options);
 
         return that;
     };
 
     // MMClient Application - sets up HTML for interface and provides data callback functions
-    Interedition.Client.AnnotationRegistration.Application.namespace('MMClient');
-    Interedition.Client.AnnotationRegistration.Application.MMClient.initApp = function(container, options) {
-        app = Interedition.Client.AnnotationRegistration.Application.initApp("Interedition.Client.AnnotationRegistration.Application.MMClient", container, $.extend(true, {},
+	Interedition.Client.AnnotationRegistration.namespace('MMClient');
+    Interedition.Client.AnnotationRegistration.MMClient.initApp = function(container, options) {
+        app = MITHGrid.Application.initApp("Interedition.Client.AnnotationRegistration.MMClient", container, $.extend(true, {},
         options, {
             viewSetup: '<div id="annoRegisterForm">' +
             '<div id = "TargetDiv">' +
@@ -72,7 +85,7 @@
             // dataStoreDisplay is for debugging
             presentations: {
                 TextAreaContent: {
-                    type: Interedition.Client.AnnotationRegistration.Presentation.TextArea,
+                    type: MITHGrid.Presentation.TextArea,
                     container: "#textBodyTarget",
                     dataView: "TextContent",
                     lenses: {
@@ -84,10 +97,14 @@
                             container.empty().append('<p>' + item.content + '</p>');
                             return that;
                         }
-                    }
+                    },
+					controllers: {
+						rangy: "rangy",
+						server: "server"
+					}
                 },
                 AnnoDisp: {
-                    type: Interedition.Client.AnnotationRegistration.Presentation.AnnoView,
+                    type: MITHGrid.Presentation.AnnoView,
                     container: "#bodyLoadTable",
                     dataView: 'AnnotationDisp',
                     lenses: {
@@ -97,25 +114,7 @@
                             el = '<li>',
                             anno,
                             target,
-                            body,
-                            sendAnnoRequest = function(annoSend) {
-                                // push to the annotation server
-                                $.ajax({
-                                    url: phpCDBypass,
-                                    type: 'POST',
-                                    dataType: 'text',
-                                    data: {
-                                        urlsend: post_anno_uri,
-                                        datasend: JSON.stringify(anno)
-                                    },
-                                    success: function(d) {
-                                        $(container).append('<p>' + d + '</p>');
-                                    },
-                                    error: function(xhr, status, e) {
-                                        console.log('error ' + e + '  ' + JSON.stringify(xhr));
-                                    }
-                                });
-                            };
+                            body;
 
                             el += '<p>' + item.id[0] + '</p>' +
                             '<p>' + item.hasBody[0] + '</p>' +
@@ -178,7 +177,6 @@
                 // went through - fire event;
                 $("#validationImage").attr('src', 'images/001_06.png');
             }
-
         };
 
         app.getBodyContent = function() {
@@ -186,7 +184,6 @@
             // or from the URI input depending on state of radio
             // buttons
             return $("#BodyTextArea > textarea").text();
-
         };
         app.getBodyURI = function(bodyObj) {
             // Takes a Body object and returns the unique
@@ -218,12 +215,9 @@
                     });
 
                     // insert into datastore
-                    that.dataStore.MM.loadItems([bodyObj]);
+                    app.dataStore.MM.loadItems([bodyObj]);
                 }
             });
-
-
-
         };
 
         app.parseExportAnno = function(anno) {
@@ -234,11 +228,11 @@
             targets = [],
             t = {};
             // get body and target(s)
-            body = that.dataStore.MM.getItem(anno.hasBody);
+            body = app.dataStore.MM.getItem(anno.hasBody);
 
             $.each(anno.hasTarget,
             function(i, o) {
-                t = that.dataStore.MM.getItem(o);
+                t = app.dataStore.MM.getItem(o);
                 targets.push(t);
             });
 
@@ -307,7 +301,7 @@
         // Checks for other target objects of similar origin
         app.checkHasTarget = function(uri) {
             var target = {},
-            targetRecs = that.dataStore.MM.prepare(["target.uri"]),
+            targetRecs = app.dataStore.MM.prepare(["target.uri"]),
             collect = targetRecs.evaluate([uri]);
 
             if (collect.length) {
@@ -324,7 +318,7 @@
             // into the data store
             var targetObj = {},
             targets,
-            query = that.dataStore.MM.prepare([".type='target'"]);
+            query = app.dataStore.MM.prepare([".type='target'"]);
             targets = query.length;
             targetId = 't' + (Math.ceil(Math.random() * 100));
 
@@ -336,7 +330,7 @@
                 mime_type: "text/html",
                 constraint: constraint.constraint
             };
-            that.dataStore.MM.loadItems([targetObj]);
+            app.dataStore.MM.loadItems([targetObj]);
         };
 
         // Registers an OAC-annotation constraint from
@@ -346,7 +340,7 @@
             linepos = 'line=' + start + ',' + end,
             ranges = sel.getAllRanges(),
             txt = sel.toString(),
-            textItem = that.dataStore.MM.prepare(['.type="text"']),
+            textItem = app.dataStore.MM.prepare(['.type="text"']),
             textURI = 'http://quartos.org/lib/XMLDoc/viewXML.php?path=ham-1604-22276x-fol-c01.xml';
             // convert item to constrain object
             cObj = {
@@ -384,7 +378,7 @@
             });
         };
 
-        that.ready(function() {
+        app.ready(function() {
             $("#TargetURI > input").focusout(function(e) {
                 e.preventDefault();
                 validate($(this).val());
@@ -393,8 +387,8 @@
 
             // Global bind
             // Load the target object into Data Store
-            $("body").bind("TargetTextSelected", registerConstraint);
-            $("body").bind("TargetTextParsed", getTargetSelection);
+            // $("body").bind("TargetTextSelected", registerConstraint);
+            // $("body").bind("TargetTextParsed", getTargetSelection);
             $("#servermessage").bind("ajaxStart",
             function() {
                 // adjust scrolltop
@@ -413,9 +407,7 @@
             // URI value
             $("#bodyLoad").click(function(e) {
                 e.preventDefault();
-                // var item = getInputData(),
-                // 				duplicateSearch = that.dataStore.MM.prepare([".uri"]), uris = [],
-                // 				targetURI = $("#TargetURI > input").val();
+                
                 var bodyContent = getBodyContent(),
                 body_mime = 'text/html';
 
@@ -446,13 +438,13 @@
                     hasBody: bodyId,
                     hasTargets: [targetId]
                 };
-                that.dataStore.MM.loadItems([annoData]);
+                app.dataStore.MM.loadItems([annoData]);
                 // push to server
                 return;
             });
 
             // Load in sample text for Target area
-            that.dataStore.MM.loadItems([{
+            app.dataStore.MM.loadItems([{
                 id: 'http://quartos.org/lib/XMLDoc/viewXML.php?path=ham-1604-22276x-fol-c01.xml',
                 type: 'text',
                 content: 'King.' +
@@ -487,7 +479,7 @@
 
         });
 
-        return that;
+        return app;
     };
 
 
