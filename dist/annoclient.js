@@ -24,6 +24,7 @@ var MITHGrid = MITHGrid || {};
 var jQuery = jQuery || {};
 var Interedition = Interedition || {};
 var app = app || {};
+var rangy = rangy || {};
 
 MITHGrid.globalNamespace('Interedition');
 Interedition.namespace('Client');
@@ -75,7 +76,7 @@ For picking up rangy selections within the Javascript CDATA
                 startNode = $(sel.anchorNode.parentNode).getPath();
                 endNode = $(sel.focusNode.parentNode).getPath();
 
-                options.events.onMouseUp.fire([{
+                binding.events.onMouseUp.fire([{
 					sel: sel, 
 					start: startIndex, 
 					end: endIndex, 
@@ -193,6 +194,31 @@ For picking up rangy selections within the Javascript CDATA
         return that;
     };
 
+	Controller.namespace('clickActive');
+	Controller.clickActive.initController = function(options) {
+		var that = MITHGrid.Controller.initController('Interedition.Client.AnnotationRegistration.Controller.Server', options);
+		options = that.options;
+		
+		that.applyBindings = function(binding, opts) {
+			var clickobj = binding.locate('clickobject'),
+			active = false;
+			
+			clickobj.mousedown(function(e) {
+				if(active) {
+					binding.events.setUnActive.fire();
+					active = false;
+				} else {
+					binding.events.setActive.fire();
+					active = true;
+				}
+			});
+			
+		};
+		
+		
+		return that;
+	};
+
 } (jQuery, MITHGrid, Interedition));
 (function($, MITHGrid) {
     var author_uri = 'Grant',
@@ -209,17 +235,18 @@ For picking up rangy selections within the Javascript CDATA
     MITHGrid.Presentation.TextArea.initPresentation = function(container, options) {
         var that = MITHGrid.Presentation.initPresentation("MITHGrid.Presentation.TextArea", container, options),
         registerTarget;
-        
+
         that.rangy = options.controllers.rangy.bind(container, {});
-		that.server = options.controllers.server.bind(container, {});
-		registerTarget = function(item) {
-			var target, targetSearch, 
-			targetIds;
-			targetSearch = options.application.dataStores.MM.prepare(['.type']);
-			targetIds = targetSearch.evaluate('Target');
-			
-			linepos = 'line=' + item.start + ',' + item.end;
-            
+        that.server = options.controllers.server.bind(container, {});
+        registerTarget = function(item) {
+            var target,
+            targetSearch,
+            targetIds;
+            targetSearch = options.application.dataStore.MM.prepare(['.type']);
+            targetIds = targetSearch.evaluate('Target');
+
+            linepos = 'line=' + item.start + ',' + item.end;
+
             textURI = 'http://quartos.org/lib/XMLDoc/viewXML.php?path=ham-1604-22276x-fol-c01.xml';
             // convert item to constrain object
             cObj = {
@@ -229,17 +256,17 @@ For picking up rangy selections within the Javascript CDATA
                 }
             };
 			
-			target = {
-				id: 'target' + targetIds.length,
-				type: 'Target',
-				hasConstraint: item.hasConstraint || '',
-				bodyType: 'text',
-				bodyContent: item.hasContent
-			};
-			options.application.dataStores.MM.loadItems([target]);
-		};
-		
-		that.rangy.events.onMouseUp.addListener(registerTarget);
+            target = {
+                id: 'target' + targetIds.length,
+                type: 'target',
+                hasConstraint: item.hasConstraint || '',
+                bodyType: 'text',
+                bodyContent: item.hasContent
+            };
+            options.application.dataStore.MM.loadItems([target]);
+        };
+
+        that.rangy.events.onMouseUp.addListener(registerTarget);
         return that;
     };
 
@@ -251,7 +278,7 @@ For picking up rangy selections within the Javascript CDATA
     };
 
     // MMClient Application - sets up HTML for interface and provides data callback functions
-	Interedition.Client.AnnotationRegistration.namespace('MMClient');
+    Interedition.Client.AnnotationRegistration.namespace('MMClient');
     Interedition.Client.AnnotationRegistration.MMClient.initApp = function(container, options) {
         app = MITHGrid.Application.initApp("Interedition.Client.AnnotationRegistration.MMClient", container, $.extend(true, {},
         options, {
@@ -261,13 +288,13 @@ For picking up rangy selections within the Javascript CDATA
             '<div id="textBodyTarget"></div>	' +
             '<div id="targetLoadTable"></div>' +
             '</div>' +
+			'<div id="bodyLoadTable"></div>' +
             '<div id="BodyTextArea">' +
             '<h3>Put your annotation text here</h3>' +
             '<div id="targetID"></div>' +
             '<textarea id="bodyContent" cols="55" rows="20"></textarea>' +
             '<br/>' +
             '<button id="bodyLoad">Load Body</button>' +
-            '<div id="bodyLoadTable"></div>' +
             '</div>' +
             '<div id="AnnoArea">' +
             '	<button id="submitAnno">Submit Annotation</button>	' +
@@ -294,10 +321,90 @@ For picking up rangy selections within the Javascript CDATA
                             return that;
                         }
                     },
+                    controllers: {
+                        rangy: "rangy",
+                        server: "server"
+                    }
+                },
+                TargetDisp: {
+                    type: MITHGrid.Presentation.AnnoView,
+                    container: "#bodyLoadTable",
+                    dataView: 'targets',
+                    lenses: {
+                        target: function(container, view, model, itemId) {
+							var that = {},
+                            item = model.getItem(itemId),
+                            el = '<div id="' + itemId + '" class="targetItem">',
+                            anno,
+                            target,
+                            body;
+
+                            $.each(item,
+                            function(i, o) {
+                                el += '<p>' + item[i][0] + '</p>';
+                            });
+
+                            el += '</div>';
+							
+                            $(container).append(el);
+                            that.update = function(item) {
+								$('.targetItem').removeClass('active');
+                                if(item.active[0] === true) {
+									
+									$("#" + itemId).addClass('active');
+								} 
+                            };
+
+                            that.remove = function(item) {
+                                $(container).remove(el);
+                            };
+
+                            return that;
+						}
+                    },
 					controllers: {
-						rangy: "rangy",
-						server: "server"
+						clickactive: "clickactive"
 					}
+                },
+                BodyDisp: {
+                    type: MITHGrid.Presentation.AnnoView,
+                    container: "#bodyLoadTable",
+                    dataView: 'bodies',
+                    lenses: {
+                        body: function(container, view, model, itemId) {
+                            var that = {},
+                            item = model.getItem(itemId),
+                            el = '<li>',
+                            anno,
+                            target,
+                            body;
+
+                            $.each(item,
+                            function(i, o) {
+                                el += '<p>' + item[i][0] + '</p>';
+                            });
+
+                            el += '</li>';
+
+                            $(container).append(el);
+                            that.update = function(item) {
+                                $(container).remove(el);
+                                el = '<li>';
+                                $.each(item,
+                                function(i, o) {
+                                    el += '<p>' + item[i][0] + '</p>';
+                                });
+                                $(container).append(el);
+
+                            };
+
+                            that.remove = function(item) {
+                                $(container).remove(el);
+                            };
+
+                            return that;
+                        }
+                    }
                 },
                 AnnoDisp: {
                     type: MITHGrid.Presentation.AnnoView,
@@ -312,15 +419,15 @@ For picking up rangy selections within the Javascript CDATA
                             target,
                             body;
 
-                            el += '<p>' + item.id[0] + '</p>' +
-                            '<p>' + item.hasBody[0] + '</p>' +
-                            '<p>' + item.hasTargets[0] + '</p>' +
-                            '</li>';
+                            $.each(item,
+                            function(i, o) {
+                                el += '<p>' + item[i][0] + '</p>';
+                            });
 
-                            $("#" + $(container).attr('id') + " > ul").append(el);
-                            // get target and body items
-                            target = model.getItem(item.hasTargets[0]);
 
+                            el += '</li>';
+
+                            $(container).append(el);
 
                             // prep for server/convert data
                             anno = {
@@ -332,32 +439,27 @@ For picking up rangy selections within the Javascript CDATA
                                 }]
                             };
 
-                            sendAnnoRequest(anno);
-
+                            // sendAnnoRequest(anno);
                             that.update = function(item) {
-                                el += '<p>' + item.id[0] + '</p>' +
-                                '<p>' + item.hasBody[0] + '</p>' +
-                                '<p>' + item.hasTargets[0] + '</p>' +
-                                '</li>';
+                                $(container).remove(el);
+                                el = '<li>';
+                                $.each(item,
+                                function(i, o) {
+                                    el += '<p>' + item[i][0] + '</p>';
+                                });
+                                $(container).append(el);
 
-                                $("#" + $(container).attr('id') + " > ul").append(el);
-                                // get target and body items
-                                target = model.getItem(item.hasTargets[0]);
+                            };
 
-                                // prep for server/convert data
-                                anno = {
-                                    author_uri: author_uri,
-                                    body_uri: item.hasBody[0],
-                                    targets: [{
-                                        uri: target.id[0],
-                                        constraint: target.constraint[0]
-                                    }]
-                                };
-                                sendAnnoRequest(anno);
+                            that.remove = function(item) {
+                                $(container).remove(el);
                             };
 
                             return that;
                         }
+                    },
+                    controllers: {
+                        server: 'server'
                     }
                 }
             }
@@ -603,7 +705,7 @@ For picking up rangy selections within the Javascript CDATA
             // URI value
             $("#bodyLoad").click(function(e) {
                 e.preventDefault();
-                
+
                 var bodyContent = getBodyContent(),
                 body_mime = 'text/html';
 
@@ -696,6 +798,7 @@ MITHGrid.defaults("Interedition.Client.AnnotationRegistration.Controller.Rangy",
 });
 
 
+
 // Defaults that are common for the entire application
 MITHGrid.defaults("Interedition.Client.AnnotationRegistration.MMClient", {
 	controllers: {
@@ -709,6 +812,12 @@ MITHGrid.defaults("Interedition.Client.AnnotationRegistration.MMClient", {
 			type: Interedition.Client.AnnotationRegistration.Controller.Server,
 			selectors: {
 				
+			}
+		},
+		clickactive: {
+			type: Interedition.Client.AnnotationRegistration.Controller.clickActive,
+			selectors: {
+				clickobject: '.targetItem'
 			}
 		}
 	},
@@ -748,13 +857,13 @@ MITHGrid.defaults("Interedition.Client.AnnotationRegistration.MMClient", {
         },
         // Body objects that are referenced by text that a user
         // enters into the textarea
-        TextBody: {
+        bodies: {
             types: ["body"],
             dataStore: 'MM'
         },
         // All target objects. Will expand into targets referencing
         // other Annotations.
-        TargetURI: {
+        targets: {
             types: ["target"],
             dataStore: 'MM'
         },

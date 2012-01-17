@@ -12,6 +12,7 @@ MITHGrid.defaults("Interedition.Client.AnnotationRegistration.Controller.Rangy",
 });
 
 
+
 // Defaults that are common for the entire application
 MITHGrid.defaults("Interedition.Client.AnnotationRegistration.MMClient", {
 	controllers: {
@@ -25,6 +26,12 @@ MITHGrid.defaults("Interedition.Client.AnnotationRegistration.MMClient", {
 			type: Interedition.Client.AnnotationRegistration.Controller.Server,
 			selectors: {
 				
+			}
+		},
+		clickactive: {
+			type: Interedition.Client.AnnotationRegistration.Controller.clickActive,
+			selectors: {
+				clickobject: '.targetItem'
 			}
 		}
 	},
@@ -64,13 +71,13 @@ MITHGrid.defaults("Interedition.Client.AnnotationRegistration.MMClient", {
         },
         // Body objects that are referenced by text that a user
         // enters into the textarea
-        TextBody: {
+        bodies: {
             types: ["body"],
             dataStore: 'MM'
         },
         // All target objects. Will expand into targets referencing
         // other Annotations.
-        TargetURI: {
+        targets: {
             types: ["target"],
             dataStore: 'MM'
         },

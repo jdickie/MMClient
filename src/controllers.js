@@ -45,7 +45,7 @@ For picking up rangy selections within the Javascript CDATA
                 startNode = $(sel.anchorNode.parentNode).getPath();
                 endNode = $(sel.focusNode.parentNode).getPath();
 
-                options.events.onMouseUp.fire([{
+                binding.events.onMouseUp.fire([{
 					sel: sel, 
 					start: startIndex, 
 					end: endIndex, 
@@ -162,5 +162,30 @@ For picking up rangy selections within the Javascript CDATA
 
         return that;
     };
+
+	Controller.namespace('clickActive');
+	Controller.clickActive.initController = function(options) {
+		var that = MITHGrid.Controller.initController('Interedition.Client.AnnotationRegistration.Controller.Server', options);
+		options = that.options;
+		
+		that.applyBindings = function(binding, opts) {
+			var clickobj = binding.locate('clickobject'),
+			active = false;
+			
+			clickobj.mousedown(function(e) {
+				if(active) {
+					binding.events.setUnActive.fire();
+					active = false;
+				} else {
+					binding.events.setActive.fire();
+					active = true;
+				}
+			});
+			
+		};
+		
+		
+		return that;
+	};
 
 } (jQuery, MITHGrid, Interedition));

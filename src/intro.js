@@ -24,6 +24,7 @@ var MITHGrid = MITHGrid || {};
 var jQuery = jQuery || {};
 var Interedition = Interedition || {};
 var app = app || {};
+var rangy = rangy || {};
 
 MITHGrid.globalNamespace('Interedition');
 Interedition.namespace('Client');
